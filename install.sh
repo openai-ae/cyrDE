@@ -2,12 +2,10 @@
 
 if ! grep -q "arch" /etc/os-release; then
     echo ":: This script is designed to run on Arch Linux."
-    exit 1
 fi
 
 if [ ! -d "$HOME/dotfiles" ]; then
     echo ":: The directory $HOME/dotfiles does not exist."
-    exit 1
 fi
 
 execute_command() {
