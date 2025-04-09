@@ -9,7 +9,7 @@ if [ ! -d "$HOME/dotfiles" ]; then
 fi
 
 execute_command() {
-    sudo -u nobody "$@"
+    sudo -u blend "$@"
 }
 
 install_yay() {
