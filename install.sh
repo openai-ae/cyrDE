@@ -9,7 +9,7 @@ if [ ! -d "$HOME/dotfiles" ]; then
 fi
 
 execute_command() {
-    "$@"
+    runuser -u nobody "$@"
 }
 
 install_yay() {
