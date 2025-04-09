@@ -11,61 +11,7 @@ if [ ! -d "$HOME/dotfiles" ]; then
 fi
 
 execute_command() {
-    while true; do
-        "$@"
-        exit_code=$?
-        if [ $exit_code -eq 0 ]; then
-            break
-        else
-            echo "Command failed with exit code $exit_code."
-            choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
-            case $choice in
-                "Continue the script") break ;;
-                "Retry the command") continue ;;
-                "Exit the script") exit 1 ;;
-            esac
-        fi
-    done
-}
-
-ask_continue() {
-    local message=$1
-    local exit_on_no=${2:-true}
-    if gum confirm "$message"; then
-        return 0
-    else
-        echo ":: Skipping $message."
-        if $exit_on_no; then
-            echo ":: Exiting script."
-            exit 0
-        else
-            return 1
-        fi
-    fi
-}
-
-preference_select() {
-    local type=$1
-    shift
-    local app_type=$1
-    shift
-    local options=("$@")
-
-    gum style \
-        --foreground 212 --border-foreground 212 --border normal \
-        --align center --width 50 --margin "0 2" --padding "1 2" \
-        "Select a(n) $type to install"
-
-    CHOICE=$(gum choose "${options[@]}" "NONE")
-
-    if [[ $CHOICE != "NONE" ]]; then
-        execute_command yay -Sy
-        execute_command yay -S --needed $CHOICE
-        python -O "$HOME"/dotfiles/ags/scripts/apps.py --"$app_type" $CHOICE
-    else
-        echo "Not installing a(n) $type..."
-        sleep .4
-    fi
+    "$@"
 }
 
 install_yay() {
@@ -89,7 +35,6 @@ install_agsv1() {
 
 install_packages() {
     echo ":: Installing packages"
-    sleep 1
     yay -Sy
     execute_command yay -S --needed \
         hyprland hyprshot hyprcursor hypridle hyprlang hyprpaper hyprpicker hyprlock \
@@ -101,7 +46,7 @@ install_packages() {
         networkmanager gnome-bluetooth-3.0 wl-gammarelay-rs bluez bluez-libs bluez-utils \
         cliphist wl-clipboard libadwaita swappy nwg-look \
         pavucontrol polkit-gnome brightnessctl man-pages gvfs xarchiver zip imagemagick \
-        blueman fastfetch bibata-cursor-theme gum python-pywayland dbus \
+        blueman fastfetch bibata-cursor-theme python-pywayland dbus \
         libdrm mesa fwupd bun-bin pipewire wireplumber udiskie \
         lm_sensors gnome-system-monitor playerctl ttf-meslo-nerd ttf-google-sans \
         ttf-font-awesome ttf-opensans ttf-roboto lshw ttf-material-symbols-variable-git \
@@ -112,12 +57,7 @@ install_packages() {
 }
 
 setup_yay() {
-    if command -v yay &>/dev/null; then
-        echo ":: Yay is installed"
-        sleep 1
-    else
-        echo ":: Yay is not installed!"
-        sleep 1
+    if ! command -v yay &>/dev/null; then
         install_yay
     fi
 }
@@ -135,143 +75,90 @@ check_config_folders() {
 
     for dir in $CHECK_CONFIG_FOLDERS; do
         if [ -d "$HOME/.config/$dir" ]; then
-            echo ":: Attention: directory $dir already exists in .config"
-            mv $HOME/.config/$dir "$HOME/.backup/$DATETIME/"
+            echo ":: Backing up existing $dir config..."
+            mv "$HOME/.config/$dir" "$HOME/.backup/$DATETIME/"
             EXISTING="YES"
         fi
     done
 
     if [[ $EXISTING == "YES" ]]; then
-        echo ":: Old config folder(s) backed up at ~/.backup folder"
+        echo ":: Old config folder(s) backed up to ~/.backup/$DATETIME/"
     fi
 }
 
 install_icon_theme() {
-    gum style \
-        --foreground 212 --border-foreground 212 --border normal \
-        --align center --width 50 --margin "0 2" --padding "1 2" \
-        "Select an icon theme to install"
-
-    CHOICE=$(gum choose "Tela Icon Theme" "Papirus Icon Theme" "Adwaita Icon Theme")
-
-    if [[ $CHOICE == "Tela Icon Theme" ]]; then
-        echo ":: Installing Tela icons..."
-        mkdir -p /tmp/install
-        cd /tmp/install
-        git clone https://github.com/vinceliuice/Tela-icon-theme
-        cd Tela-icon-theme
-
-        gum style \
-            --foreground 212 --border-foreground 212 --border normal \
-            --align center --width 50 --margin "0 2" --padding "1 2" \
-            "Select a color theme"
-
-        COLOR_CHOICE=$(gum choose --height=20 "nord" "black" "blue" "green" "grey" "orange" \
-            "pink" "purple" "red" "yellow" "brown")
-
-        ./install.sh $COLOR_CHOICE
-        echo -e "Tela-$COLOR_CHOICE-dark\nTela-$COLOR_CHOICE-light" >$HOME/dotfiles/.settings/icon-theme
-        cd $HOME/dotfiles
-
-    elif [[ $CHOICE == "Papirus Icon Theme" ]]; then
-        yay -S --noconfirm --needed papirus-icon-theme papirus-folders
-
-        echo -e "Papirus-Dark\nPapirus-Light" >$HOME/dotfiles/.settings/icon-theme
-
-        gum style \
-            --foreground 212 --border-foreground 212 --border normal \
-            --align center --width 50 --margin "0 2" --padding "1 2" \
-            "Select a color theme"
-
-        COLOR_CHOICE=$(gum choose --height=20 "black" "blue" "cyan" "green" "grey" "indigo" \
-            "brown" "purple" "nordic" "pink" "red" "deeporange" "white" "yellow")
-
-        papirus-folders -C $COLOR_CHOICE
-
-    else
-        yay -S --noconfirm --needed adwaita-icon-theme
-        echo -e "Adwaita\nAdwaita" >$HOME/dotfiles/.settings/icon-theme
-    fi
+    echo ":: Installing Tela icons (default: nord)..."
+    mkdir -p /tmp/install
+    cd /tmp/install
+    git clone https://github.com/vinceliuice/Tela-icon-theme
+    cd Tela-icon-theme
+    ./install.sh nord
+    echo -e "Tela-nord-dark\nTela-nord-light" >"$HOME/dotfiles/.settings/icon-theme"
+    cd "$HOME/dotfiles"
 }
 
 setup_colors() {
-    echo ":: Setting colors"
-    execute_command python -O $HOME/dotfiles/material-colors/generate.py --color "#0000FF"
+    echo ":: Setting colors (default: blue)..."
+    execute_command python -O "$HOME/dotfiles/material-colors/generate.py" --color "#0000FF"
 }
 
 setup_sddm() {
-    echo ":: Setting SDDM"
+    echo ":: Setting SDDM..."
     sudo mkdir -p /etc/sddm.conf.d
-    sudo cp $HOME/dotfiles/sddm/sddm.conf /etc/sddm.conf.d/
-    sudo cp $HOME/dotfiles/sddm/sddm.conf /etc/
+    sudo cp "$HOME/dotfiles/sddm/sddm.conf" /etc/sddm.conf.d/
+    sudo cp "$HOME/dotfiles/sddm/sddm.conf" /etc/
     sudo chmod 777 /etc/sddm.conf.d/sddm.conf
     sudo chmod 777 /etc/sddm.conf
     sudo chmod -R 777 /usr/share/sddm/themes/corners/
-    "$HOME"/dotfiles/sddm/scripts/wallpaper.sh
+    "$HOME/dotfiles/sddm/scripts/wallpaper.sh"
 }
 
 copy_files() {
-    echo ":: Copying files"
-    mkdir -p $HOME/.config
-    "$HOME"/dotfiles/setup/copy.sh
-    if [ -d "$HOME/wallpaper" ]; then
-        echo ":: Error: directory wallpaper already exists in home"
-    else
-        cp -r $HOME/dotfiles/wallpapers $HOME/wallpaper
+    echo ":: Copying files..."
+    mkdir -p "$HOME/.config"
+    "$HOME/dotfiles/setup/copy.sh"
+    if [ ! -d "$HOME/wallpaper" ]; then
+        cp -r "$HOME/dotfiles/wallpapers" "$HOME/wallpaper"
     fi
 }
 
 create_links() {
-    echo ":: Creating links"
-    ln -f $HOME/dotfiles/electron-flags.conf $HOME/.config/electron-flags.conf
-    ln -s $HOME/dotfiles/ags $HOME/.config/ags
-    ln -s $HOME/dotfiles/alacritty $HOME/.config/alacritty
-    ln -s $HOME/dotfiles/hypr $HOME/.config/hypr
-    ln -s $HOME/dotfiles/swappy $HOME/.config/swappy
+    echo ":: Creating symlinks..."
+    ln -f "$HOME/dotfiles/electron-flags.conf" "$HOME/.config/electron-flags.conf"
+    ln -sf "$HOME/dotfiles/ags" "$HOME/.config/ags"
+    ln -sf "$HOME/dotfiles/alacritty" "$HOME/.config/alacritty"
+    ln -sf "$HOME/dotfiles/hypr" "$HOME/.config/hypr"
+    ln -sf "$HOME/dotfiles/swappy" "$HOME/.config/swappy"
 }
 
 install_vencord() {
-    echo ":: Vencord"
+    echo ":: Installing Vencord..."
     sh -c "$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)"
-    mkdir -p $HOME/.config/Vencord/settings/
-    ln -f $HOME/.cache/material/material-discord.css $HOME/.config/Vencord/settings/quickCss.css
+    mkdir -p "$HOME/.config/Vencord/settings/"
+    ln -f "$HOME/.cache/material/material-discord.css" "$HOME/.config/Vencord/settings/quickCss.css"
 }
 
 remove_gtk_buttons() {
-    echo ":: Remove window close and minimize buttons in GTK"
+    echo ":: Removing GTK window buttons..."
     gsettings set org.gnome.desktop.wm.preferences button-layout ':'
 }
 
 setup_services() {
-    echo ":: Services"
-
-    if systemctl is-active --quiet bluetooth.service; then
-        echo ":: bluetooth.service already running."
-    else
-        sudo systemctl enable bluetooth.service
-        sudo systemctl start bluetooth.service
-        echo ":: bluetooth.service activated successfully."
-    fi
-
-    if systemctl is-active --quiet NetworkManager.service; then
-        echo ":: NetworkManager.service already running."
-    else
-        sudo systemctl enable NetworkManager.service
-        sudo systemctl start NetworkManager.service
-        echo ":: NetworkManager.service activated successfully."
-    fi
+    echo ":: Enabling services..."
+    sudo systemctl enable --now bluetooth.service
+    sudo systemctl enable --now NetworkManager.service
 }
 
 update_user_dirs() {
-    echo ":: User dirs"
+    echo ":: Updating user directories..."
     xdg-user-dirs-update
 }
 
 misc_tasks() {
-    echo ":: Misc"
+    echo ":: Running final tasks..."
     hyprctl reload
     agsv1 --init
-    execute_command python $HOME/dotfiles/hypr/scripts/wallpaper.py -R
+    execute_command python "$HOME/dotfiles/hypr/scripts/wallpaper.py" -R
 }
 
 main() {
@@ -282,30 +169,22 @@ main() {
     fi
 
     setup_yay
-    if ! command -v gum &>/dev/null; then
-        echo ":: gum not installed"
-        execute_command sudo pacman -S gum
-    fi
+    install_packages
+    install_microtex
+    setup_sensors
+    check_config_folders
+    install_icon_theme
+    setup_sddm
+    copy_files
+    create_links
+    setup_colors
+    install_vencord
+    remove_gtk_buttons
+    setup_services
+    update_user_dirs
+    misc_tasks
 
-    ask_continue "Proceed with installing packages?" false && install_packages
-    preference_select "file manager" "filemanager" "nautilus" "dolphin" "thunar"
-    preference_select "internet browser" "browser" "brave" "firefox" "google-chrome" "chromium"
-    preference_select "terminal emulator" "terminal" "alacritty" "kitty" "konsole"
-    ask_continue "Proceed with installing MicroTex?" false && install_microtex
-    ask_continue "Proceed with setting up sensors?" false && setup_sensors
-    ask_continue "Proceed with checking config folders?*" && check_config_folders
-    ask_continue "Proceed with installing icon themes?" false && install_icon_theme
-    ask_continue "Proceed with setting up SDDM?" false && setup_sddm
-    ask_continue "Proceed with copying files?*" && copy_files
-    ask_continue "Proceed with creating links?*" && create_links
-    ask_continue "Proceed with setting up colors?*" && setup_colors
-    ask_continue "Proceed with installing Vencord?" false && install_vencord
-    ask_continue "Proceed with removing GTK buttons?" false && remove_gtk_buttons
-    ask_continue "Proceed with setting up services?*" && setup_services
-    ask_continue "Proceed with updating user directories?*" && update_user_dirs
-    ask_continue "Proceed with miscellaneous tasks?*" && misc_tasks
-
-    echo "Please restart your PC"
+    echo ":: All done! Please restart your PC."
 }
 
 main "$@"
