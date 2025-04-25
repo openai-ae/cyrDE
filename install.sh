@@ -12,6 +12,7 @@ fi
 
 execute_command() {
     sudo -u blend env BUILDDIR=/root/build
+    }
 
 install_aur_package() {
     local pkg_name=$1
