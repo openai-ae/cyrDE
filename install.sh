@@ -13,6 +13,25 @@ fi
 execute_command() {
     sudo -u blend env BUILDDIR=/root/build
     }
+ 
+ install_yay() {
+     echo ":: Installing yay..."
+     execute_command sudo pacman -Sy
+     execute_command sudo pacman -S --needed --noconfirm base-devel git
+     execute_command git clone https://aur.archlinux.org/yay.git /tmp/yay
+     cd /tmp/yay
+     execute_command makepkg -si --noconfirm --needed
+ }
+ 
+ install_microtex() {
+     cd ~/dotfiles/setup/MicroTex/
+     execute_command makepkg -si
+ }
+ 
+ install_agsv1() {
+     cd ~/dotfiles/setup/agsv1/
+     execute_command makepkg -si
+ }
 
 install_aur_package() {
     local pkg_name=$1
@@ -83,7 +102,104 @@ install_packages() {
     install_agsv1
 }
 
-# [Rest of the functions remain exactly the same as previous version...]
+setup_sensors() {
+    execute_command sudo sensors-detect --auto >/dev/null
+}
+
+check_config_folders() {
+    local CHECK_CONFIG_FOLDERS="ags alacritty hypr swappy"
+    local DATETIME=$(date '+%Y-%m-%d %H:%M:%S')
+    local EXISTING="NO"
+
+    mkdir -p "$HOME/.backup/$DATETIME/"
+
+    for dir in $CHECK_CONFIG_FOLDERS; do
+        if [ -d "$HOME/.config/$dir" ]; then
+            echo ":: Backing up existing $dir config..."
+            mv "$HOME/.config/$dir" "$HOME/.backup/$DATETIME/"
+            EXISTING="YES"
+        fi
+    done
+
+    if [[ $EXISTING == "YES" ]]; then
+        echo ":: Old config folder(s) backed up to ~/.backup/$DATETIME/"
+    fi
+}
+
+install_icon_theme() {
+    echo ":: Installing Tela icons (default: nord)..."
+    mkdir -p /tmp/install
+    cd /tmp/install
+    git clone https://github.com/vinceliuice/Tela-icon-theme
+    cd Tela-icon-theme
+    ./install.sh nord
+    echo -e "Tela-nord-dark\nTela-nord-light" >"$HOME/dotfiles/.settings/icon-theme"
+    cd "$HOME/dotfiles"
+}
+
+setup_colors() {
+    echo ":: Setting colors (default: blue)..."
+    execute_command python -O "$HOME/dotfiles/material-colors/generate.py" --color "#0000FF"
+}
+
+setup_sddm() {
+    echo ":: Setting SDDM..."
+    sudo mkdir -p /etc/sddm.conf.d
+    sudo cp "$HOME/dotfiles/sddm/sddm.conf" /etc/sddm.conf.d/
+    sudo cp "$HOME/dotfiles/sddm/sddm.conf" /etc/
+    sudo chmod 777 /etc/sddm.conf.d/sddm.conf
+    sudo chmod 777 /etc/sddm.conf
+    sudo chmod -R 777 /usr/share/sddm/themes/corners/
+    "$HOME/dotfiles/sddm/scripts/wallpaper.sh"
+}
+
+copy_files() {
+    echo ":: Copying files..."
+    mkdir -p "$HOME/.config"
+    "$HOME/dotfiles/setup/copy.sh"
+    if [ ! -d "$HOME/wallpaper" ]; then
+        cp -r "$HOME/dotfiles/wallpapers" "$HOME/wallpaper"
+    fi
+}
+
+create_links() {
+    echo ":: Creating symlinks..."
+    ln -f "$HOME/dotfiles/electron-flags.conf" "$HOME/.config/electron-flags.conf"
+    ln -sf "$HOME/dotfiles/ags" "$HOME/.config/ags"
+    ln -sf "$HOME/dotfiles/alacritty" "$HOME/.config/alacritty"
+    ln -sf "$HOME/dotfiles/hypr" "$HOME/.config/hypr"
+    ln -sf "$HOME/dotfiles/swappy" "$HOME/.config/swappy"
+}
+
+install_vencord() {
+    echo ":: Installing Vencord..."
+    sh -c "$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)"
+    mkdir -p "$HOME/.config/Vencord/settings/"
+    ln -f "$HOME/.cache/material/material-discord.css" "$HOME/.config/Vencord/settings/quickCss.css"
+}
+
+remove_gtk_buttons() {
+    echo ":: Removing GTK window buttons..."
+    gsettings set org.gnome.desktop.wm.preferences button-layout ':'
+}
+
+setup_services() {
+    echo ":: Enabling services..."
+    sudo systemctl enable --now bluetooth.service
+    sudo systemctl enable --now NetworkManager.service
+}
+
+update_user_dirs() {
+    echo ":: Updating user directories..."
+    xdg-user-dirs-update
+}
+
+misc_tasks() {
+    echo ":: Running final tasks..."
+    hyprctl reload
+    agsv1 --init
+    execute_command python "$HOME/dotfiles/hypr/scripts/wallpaper.py" -R
+}
 
 main() {
     if [[ $1 == "packages" ]]; then
