@@ -142,16 +142,6 @@ setup_colors() {
     execute_command python -O "$HOME/dotfiles/material-colors/generate.py" --color "#0000FF"
 }
 
-setup_sddm() {
-    echo ":: Setting SDDM..."
-    sudo mkdir -p /etc/sddm.conf.d
-    sudo cp "$HOME/dotfiles/sddm/sddm.conf" /etc/sddm.conf.d/
-    sudo cp "$HOME/dotfiles/sddm/sddm.conf" /etc/
-    sudo chmod 777 /etc/sddm.conf.d/sddm.conf
-    sudo chmod 777 /etc/sddm.conf
-    sudo chmod -R 777 /usr/share/sddm/themes/corners/
-    "$HOME/dotfiles/sddm/scripts/wallpaper.sh"
-}
 
 copy_files() {
     echo ":: Copying files..."
@@ -212,7 +202,7 @@ main() {
     setup_sensors
     check_config_folders
     install_icon_theme
-    setup_sddm
+    #setup_sddm
     copy_files
     create_links
     setup_colors
