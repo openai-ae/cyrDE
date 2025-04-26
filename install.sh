@@ -161,13 +161,6 @@ create_links() {
     ln -sf "$HOME/dotfiles/swappy" "$HOME/.config/swappy"
 }
 
-install_vencord() {
-    echo ":: Installing Vencord..."
-    sh -c "$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)"
-    mkdir -p "$HOME/.config/Vencord/settings/"
-    ln -f "$HOME/.cache/material/material-discord.css" "$HOME/.config/Vencord/settings/quickCss.css"
-}
-
 remove_gtk_buttons() {
     echo ":: Removing GTK window buttons..."
     gsettings set org.gnome.desktop.wm.preferences button-layout ':'
@@ -206,7 +199,6 @@ main() {
     copy_files
     create_links
     setup_colors
-    install_vencord
     remove_gtk_buttons
     setup_services
     update_user_dirs
