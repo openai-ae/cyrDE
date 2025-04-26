@@ -11,7 +11,7 @@ if [ ! -d "$HOME/dotfiles" ]; then
 fi
 
 execute_command() {
-    sudo -u blend env BUILDDIR=/root/build
+    sudo -u blend BUILDDIR=/root/build
     }
  
  install_yay() {
