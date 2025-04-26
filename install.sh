@@ -139,7 +139,7 @@ install_icon_theme() {
 
 setup_colors() {
     echo ":: Setting colors (default: blue)..."
-    execute_command python -O "$HOME/dotfiles/material-colors/generate.py" --color "#0000FF"
+    python -O "$HOME/dotfiles/material-colors/generate.py" --color "#0000FF"
 }
 
 
